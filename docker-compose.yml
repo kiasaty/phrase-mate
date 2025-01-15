@@ -1,0 +1,17 @@
+services:
+  phrase-mate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: phrase-mate
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    command: ["./phrase-mate", "fetch-updates"]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

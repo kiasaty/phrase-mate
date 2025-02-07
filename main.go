@@ -35,7 +35,9 @@ func main() {
 		log.Fatalf("Failed to create Telegram bot: %v", err)
 	}
 
-	app := app.NewApp(databaseClient, bot)
+	config := app.GetDefaultConfig()
+
+	app := app.NewApp(databaseClient, bot, config)
 
 	app.HandleCommand()
 }

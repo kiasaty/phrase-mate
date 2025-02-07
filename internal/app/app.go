@@ -11,12 +11,24 @@ import (
 type App struct {
 	DB          database.DatabaseClient
 	TelegramBot *tgbotapi.BotAPI
+	Config      Config
 }
 
-func NewApp(databaseClient database.DatabaseClient, telegramBot *tgbotapi.BotAPI) App {
+type Config struct {
+	SessionSize int
+}
+
+func NewApp(databaseClient database.DatabaseClient, telegramBot *tgbotapi.BotAPI, config Config) App {
 	return App{
 		DB:          databaseClient,
 		TelegramBot: telegramBot,
+		Config:      config,
+	}
+}
+
+func GetDefaultConfig() Config {
+	return Config{
+		SessionSize: 20,
 	}
 }
 

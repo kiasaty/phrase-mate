@@ -43,6 +43,8 @@ func (app *App) HandleCommand() {
 	switch command {
 	case "fetch-updates":
 		app.FetchTelegramUpdates()
+	case "send-next-phrases-to-review":
+		app.SendNextPhraseToReviewForAllUsers()
 	case "migrate-database":
 		app.DB.Migrate()
 	default:

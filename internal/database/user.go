@@ -16,3 +16,11 @@ func (c *Client) FindUserByTelegramID(telegramID int64) (*models.User, error) {
 	}
 	return &user, nil
 }
+
+func (c *Client) GetAllUsers() ([]*models.User, error) {
+	var users []*models.User
+	if err := c.DB.Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
+}

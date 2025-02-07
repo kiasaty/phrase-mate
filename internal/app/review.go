@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"log"
 	"time"
 
 	"github.com/kiasaty/phrase-mate/models"
@@ -65,4 +66,44 @@ func (app *App) ReviewPhrase(
 	}
 
 	return review, nil
+}
+
+func (app *App) SendNextPhraseToReviewForAllUsers() {
+	users, err := app.DB.GetAllUsers()
+	if err != nil {
+		log.Printf("Error retrieving users: %v", err)
+		return
+	}
+
+	for _, user := range users {
+		app.SendNextPhraseToReviewForUser(user)
+	}
+}
+
+func (app *App) SendNextPhraseToReviewForUser(user *models.User) {
+	session, err := app.GetOrStartSession(user.ID)
+	if err != nil {
+		log.Printf("Fetching the active session failed: %v", err)
+		return
+	}
+	if session == nil {
+		log.Printf("No active session was found for user: %d", user.ID)
+		return
+	}
+
+	phrase, err := app.DB.FindNextPhraseToReviewBySessionID(session.ID)
+	if err != nil {
+		log.Printf("Finding the next phrase to review failed: %v", err)
+		return
+	}
+	if phrase == nil {
+		log.Printf("No phrase was found to review for session: %d", session.ID)
+		return
+	}
+
+	err = app.SendPhrase(user.TelegramChatID, phrase.ID, phrase.Text)
+	if err != nil {
+		log.Printf("Sending the phrase failed: %v", err)
+		return
+	}
 }

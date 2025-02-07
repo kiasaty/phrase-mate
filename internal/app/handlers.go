@@ -45,18 +45,18 @@ func (app *App) FetchTelegramUpdates() {
 
 	for update := range updates {
 		if update.CallbackQuery != nil {
-			app.HandleCallbackQuery(update.CallbackQuery)
+			app.handleCallbackQuery(update.CallbackQuery)
 			continue
 		}
 
 		if update.Message != nil {
-			app.HandleNewPhrase(update.Message)
+			app.handleNewPhrase(update.Message)
 			continue
 		}
 	}
 }
 
-func (app *App) HandleNewPhrase(message *tgbotapi.Message) {
+func (app *App) handleNewPhrase(message *tgbotapi.Message) {
 	// Save the user information
 	user, err := app.SaveUser(message.From)
 	if err != nil {
@@ -114,7 +114,7 @@ func (app *App) HandleNewPhrase(message *tgbotapi.Message) {
 	log.Printf("Phrase added for user %s: %s", user.Username, messageText)
 }
 
-func (app *App) HandleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery) {
+func (app *App) handleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery) {
 	data := strings.Split(callbackQuery.Data, ":")
 
 	if len(data) != 3 || data[0] != "review" {
@@ -147,7 +147,7 @@ func (app *App) HandleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery) {
 		return
 	}
 
-	err = app.HandleReview(user, uint(phraseID), recallQuality)
+	err = app.handleReview(user, uint(phraseID), recallQuality)
 	if err == nil {
 		callback := tgbotapi.NewCallback(callbackQuery.ID, "Thank you for your feedback!")
 		if _, err := app.TelegramBot.Request(callback); err != nil {
@@ -156,7 +156,7 @@ func (app *App) HandleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery) {
 	}
 }
 
-func (app *App) HandleReview(user *models.User, phraseID uint, recallQuality models.RecallQuality) error {
+func (app *App) handleReview(user *models.User, phraseID uint, recallQuality models.RecallQuality) error {
 	review, err := app.ReviewPhrase(phraseID, user.ID, uint(1), recallQuality)
 
 	if err != nil {

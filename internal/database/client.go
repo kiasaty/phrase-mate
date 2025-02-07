@@ -12,24 +12,26 @@ type DatabaseClient interface {
 	Migrate()
 	Transaction(fc func(tx DatabaseClient) error) error
 
-	CreateUser(*models.User) (*models.User, error)
+	CreateUser(user *models.User) (*models.User, error)
 	FindUserByTelegramID(telegramID int64) (*models.User, error)
+    GetAllUsers() ([]*models.User, error)
 
-	CreateTag(*models.Tag) (*models.Tag, error)
+	CreateTag(tag *models.Tag) (*models.Tag, error)
 	FindTagByName(name string) (*models.Tag, error)
 
-	CreatePhrase(*models.Phrase) (*models.Phrase, error)
+	CreatePhrase(phrase *models.Phrase) (*models.Phrase, error)
 	FindPhraseByMessageId(messageID int) (phrase *models.Phrase)
 	UpdatePhrase(phrase *models.Phrase) error
-	UpdatePhraseTags(*models.Phrase, *[]models.Tag) error
+	UpdatePhraseTags(phrase *models.Phrase, *[]models.Tag) error
+	FindNextPhraseToReviewBySessionID(sessionID uint) (*models.Phrase, error)
 
-	CreateSession(*models.Session) (*models.Session, error)
-	UpdateSession(*models.Session) error
+	CreateSession(session *models.Session) (*models.Session, error)
+	UpdateSession(session *models.Session) error
 	FindActiveSession(userID uint) (*models.Session, error)
 
 	CreateReview(review *models.Review) error
 	CreateReviews(reviews []models.Review) error
-	FindPhraseLastReview(userId, phraseId uint) (*models.Review, error)
+	FindPhraseLastReview(userID uint, phraseId uint) (*models.Review, error)
 	CountNotReviewedPhrasesBySessionId(sessionID uint) (int64, error)
 	GetDueReviews(userID uint, now time.Time, limit int) ([]models.Review, error)
 	GetNewReviews(userID uint, sessionID uint, limit int) ([]models.Review, error)

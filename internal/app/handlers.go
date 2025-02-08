@@ -117,7 +117,7 @@ func (app *App) handleNewPhrase(message *tgbotapi.Message) {
 func (app *App) handleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery) {
 	data := strings.Split(callbackQuery.Data, ":")
 
-	if len(data) != 3 || data[0] != "review" {
+	if len(data) != 4 || data[0] != "review" {
 		log.Printf("Invalid callback data: %s", callbackQuery.Data)
 		return
 	}
@@ -128,13 +128,19 @@ func (app *App) handleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery) {
 		return
 	}
 
-	phraseID, err := strconv.Atoi(data[1])
+	sessionID, err := strconv.Atoi(data[1])
+	if err != nil {
+		log.Printf("Invalid session ID: %v", err)
+		return
+	}
+
+	phraseID, err := strconv.Atoi(data[2])
 	if err != nil {
 		log.Printf("Invalid phrase ID: %v", err)
 		return
 	}
 
-	recallQualityNumber, err := strconv.ParseUint(data[2], 10, 8)
+	recallQualityNumber, err := strconv.ParseUint(data[3], 10, 8)
 	if err != nil {
 		fmt.Println("Invalid recall quality:", err)
 		return
@@ -147,7 +153,7 @@ func (app *App) handleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery) {
 		return
 	}
 
-	err = app.handleReview(user, uint(phraseID), recallQuality)
+	err = app.handleReview(user, uint(sessionID), uint(phraseID), recallQuality)
 	if err == nil {
 		callback := tgbotapi.NewCallback(callbackQuery.ID, "Thank you for your feedback!")
 		if _, err := app.TelegramBot.Request(callback); err != nil {
@@ -156,8 +162,18 @@ func (app *App) handleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery) {
 	}
 }
 
-func (app *App) handleReview(user *models.User, phraseID uint, recallQuality models.RecallQuality) error {
-	review, err := app.ReviewPhrase(phraseID, user.ID, uint(1), recallQuality)
+func (app *App) handleReview(
+	user *models.User,
+	sessionID uint,
+	phraseID uint,
+	recallQuality models.RecallQuality,
+) error {
+	review, err := app.ReviewPhrase(
+		phraseID,
+		user.ID,
+		sessionID,
+		recallQuality,
+	)
 
 	if err != nil {
 		log.Printf("Failed to review the phrase: %v", err)
@@ -173,6 +189,18 @@ func (app *App) handleReview(user *models.User, phraseID uint, recallQuality mod
 	if err != nil {
 		log.Printf("Failed to save phrase review: %v", err)
 		return err
+	}
+
+	reviewedPhrasesCount, err := app.DB.CountReviewedPhrasesInSession(sessionID)
+	if err != nil {
+		return err
+	}
+
+	if reviewedPhrasesCount >= app.Config.SessionSize {
+		err = app.endSession(sessionID)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

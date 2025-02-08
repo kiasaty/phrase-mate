@@ -27,13 +27,13 @@ type DatabaseClient interface {
 	FindNewPhrasesToReview(userID uint, limit int) ([]uint, error)
 
 	CreateSession(session *models.Session) (*models.Session, error)
-	UpdateSession(session *models.Session) error
+	EndSession(sessionID uint) error
 	FindActiveSession(userID uint) (*models.Session, error)
 
 	CreateReview(review *models.Review) error
 	CreateReviews(reviews []models.Review) error
 	FindPhraseLastReview(userID uint, phraseId uint) (*models.Review, error)
-	CountNotReviewedPhrasesBySessionId(sessionID uint) (uint, error)
+	CountReviewedPhrasesInSession(sessionID uint) (uint, error)
 	GetDueReview(userID uint, now time.Time, limit uint) (*models.Review, error)
 }
 

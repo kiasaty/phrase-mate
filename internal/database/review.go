@@ -33,11 +33,11 @@ func (c *Client) FindPhraseLastReview(userID, phraseID uint) (*models.Review, er
 	return &lastReview, nil
 }
 
-func (c *Client) CountNotReviewedPhrasesBySessionId(sessionID uint) (uint, error) {
+func (c *Client) CountReviewedPhrasesInSession(sessionID uint) (uint, error) {
 	var count int64
 
 	err := c.DB.Model(&models.Review{}).
-		Where("session_id = ? AND next_review_at <= ? AND reviewed_at IS NULL", sessionID, time.Now()).
+		Where("session_id = ?", sessionID, time.Now()).
 		Count(&count).Error
 
 	if err != nil {

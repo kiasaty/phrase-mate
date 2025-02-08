@@ -3,7 +3,6 @@ package app
 import (
 	"time"
 
-	"github.com/kiasaty/phrase-mate/internal/database"
 	"github.com/kiasaty/phrase-mate/models"
 )
 
@@ -38,25 +37,10 @@ func (app *App) findActiveSession(userID uint) (*models.Session, error) {
 }
 
 func (app *App) startSession(userID uint) (*models.Session, error) {
-	var session *models.Session
-
-	err := app.DB.Transaction(func(tx database.DatabaseClient) error {
-		now := time.Now()
-
-		var err error
-
-		session, err = tx.CreateSession(&models.Session{
-			UserID:    userID,
-			StartedAt: now,
-		})
-
-		if err != nil {
-			return err
-		}
-
-		return nil
+	session, err := app.DB.CreateSession(&models.Session{
+		UserID:    userID,
+		StartedAt: time.Now(),
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -64,18 +48,6 @@ func (app *App) startSession(userID uint) (*models.Session, error) {
 	return session, nil
 }
 
-func (app *App) endSession(session *models.Session) (*models.Session, error) {
-	if session.EndedAt != nil {
-		return session, nil
-	}
-
-	now := time.Now()
-	session.EndedAt = &now
-
-	err := app.DB.UpdateSession(session)
-	if err != nil {
-		return nil, err
-	}
-
-	return session, nil
+func (app *App) endSession(sessionID uint) error {
+	return app.DB.EndSession(sessionID)
 }

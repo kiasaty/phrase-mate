@@ -6,13 +6,14 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-func (app *App) SendPhrase(chatID int64, phraseID uint, phraseText string) error {
+func (app *App) SendPhrase(chatID int64, sessionID uint, phraseID uint, phraseText string) error {
+	buttonKeyPrefix := "review:" + strconv.Itoa(int(sessionID)) + ":" + strconv.Itoa(int(phraseID))
 	buttons := []tgbotapi.InlineKeyboardButton{
-		tgbotapi.NewInlineKeyboardButtonData("1", "review:"+strconv.Itoa(int(phraseID))+":1"),
-		tgbotapi.NewInlineKeyboardButtonData("2", "review:"+strconv.Itoa(int(phraseID))+":2"),
-		tgbotapi.NewInlineKeyboardButtonData("3", "review:"+strconv.Itoa(int(phraseID))+":3"),
-		tgbotapi.NewInlineKeyboardButtonData("4", "review:"+strconv.Itoa(int(phraseID))+":4"),
-		tgbotapi.NewInlineKeyboardButtonData("5", "review:"+strconv.Itoa(int(phraseID))+":5"),
+		tgbotapi.NewInlineKeyboardButtonData("1", buttonKeyPrefix+":1"),
+		tgbotapi.NewInlineKeyboardButtonData("2", buttonKeyPrefix+":2"),
+		tgbotapi.NewInlineKeyboardButtonData("3", buttonKeyPrefix+":3"),
+		tgbotapi.NewInlineKeyboardButtonData("4", buttonKeyPrefix+":4"),
+		tgbotapi.NewInlineKeyboardButtonData("5", buttonKeyPrefix+":5"),
 	}
 
 	msg := tgbotapi.NewMessage(chatID, phraseText)

@@ -1,6 +1,8 @@
 package database
 
 import (
+	"time"
+
 	"github.com/kiasaty/phrase-mate/models"
 	"gorm.io/gorm"
 )
@@ -12,8 +14,11 @@ func (c *Client) CreateSession(session *models.Session) (*models.Session, error)
 	return session, nil
 }
 
-func (c *Client) UpdateSession(session *models.Session) error {
-	return c.DB.Save(session).Error
+func (c *Client) EndSession(sessionID uint) error {
+	now := time.Now()
+	return c.DB.Model(&models.Session{}).
+		Where("id = ?", sessionID).
+		Update("ended_at", now).Error
 }
 
 func (c *Client) FindActiveSession(userID uint) (*models.Session, error) {

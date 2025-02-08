@@ -107,7 +107,12 @@ func (app *App) SendNextPhraseToReviewForUser(user *models.User) {
 		return
 	}
 
-	err = app.SendPhrase(user.TelegramChatID, phrase.ID, phrase.Text)
+	err = app.SendPhrase(
+		user.TelegramChatID,
+		session.ID,
+		phrase.ID,
+		phrase.Text,
+	)
 	if err != nil {
 		log.Printf("Sending the phrase failed: %v", err)
 		return
@@ -117,19 +122,6 @@ func (app *App) SendNextPhraseToReviewForUser(user *models.User) {
 func (app *App) getNextPhraseToReview(session *models.Session) (*models.Phrase, error) {
 	sessionSize := app.Config.SessionSize
 	now := time.Now()
-
-	notReviewedPhrasesCount, err := app.DB.CountNotReviewedPhrasesBySessionId(session.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	if notReviewedPhrasesCount >= sessionSize {
-		_, err = app.endSession(session)
-		if err != nil {
-			return nil, err
-		}
-		return nil, nil
-	}
 
 	dueReview, err := app.DB.GetDueReview(session.UserID, now, sessionSize)
 	if err != nil {

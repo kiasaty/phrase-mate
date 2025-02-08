@@ -10,5 +10,4 @@ type Phrase struct {
 	CreatedAt         time.Time `gorm:"autoCreateTime"`
 	User              User      `gorm:"foreignKey:UserID"`
 	Tags              []Tag     `gorm:"many2many:phrase_tag"`
-	History           []SentHistory
 }

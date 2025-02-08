@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -15,7 +16,7 @@ type App struct {
 }
 
 type Config struct {
-	SessionSize int
+	SessionSize uint
 }
 
 func NewApp(databaseClient database.DatabaseClient, telegramBot *tgbotapi.BotAPI, config Config) App {
@@ -43,13 +44,12 @@ func (app *App) HandleCommand() {
 	switch command {
 	case "fetch-updates":
 		app.FetchTelegramUpdates()
-	case "send-next-phrases-to-review":
+	case "send-due-phrases-to-review":
 		app.SendNextPhraseToReviewForAllUsers()
 	case "migrate-database":
 		app.DB.Migrate()
 	default:
-		fmt.Println("Unknown command:", command)
-		fmt.Println("List of existing commands.")
+		log.Println("Undefined command:", command)
 		os.Exit(1)
 	}
 }

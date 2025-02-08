@@ -1,6 +1,9 @@
 package database
 
-import "github.com/kiasaty/phrase-mate/models"
+import (
+	"github.com/kiasaty/phrase-mate/models"
+	"gorm.io/gorm"
+)
 
 func (c *Client) CreateUser(user *models.User) (*models.User, error) {
 	if err := c.DB.Create(user).Error; err != nil {
@@ -11,9 +14,16 @@ func (c *Client) CreateUser(user *models.User) (*models.User, error) {
 
 func (c *Client) FindUserByTelegramID(telegramID int64) (*models.User, error) {
 	var user models.User
-	if err := c.DB.Where("telegram_chat_id = ?", telegramID).First(&user).Error; err != nil {
+
+	err := c.DB.Where("telegram_chat_id = ?", telegramID).First(&user).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+
 		return nil, err
 	}
+
 	return &user, nil
 }
 

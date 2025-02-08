@@ -12,7 +12,7 @@ import (
 
 func (app *App) SaveUser(user *tgbotapi.User) (*models.User, error) {
 	existingUser, err := app.DB.FindUserByTelegramID(user.ID)
-	if err != nil && err.Error() != "record not found" {
+	if err != nil {
 		return nil, err
 	}
 
@@ -162,6 +162,10 @@ func (app *App) handleReview(user *models.User, phraseID uint, recallQuality mod
 	if err != nil {
 		log.Printf("Failed to review the phrase: %v", err)
 		return err
+	}
+
+	if review == nil {
+		return nil
 	}
 
 	err = app.DB.CreateReview(review)

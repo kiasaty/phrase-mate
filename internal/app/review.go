@@ -22,6 +22,10 @@ func (app *App) ReviewPhrase(
 		return nil, err
 	}
 
+	if lastReview != nil && lastReview.NextReviewAt.After(time.Now()) {
+		return nil, nil
+	}
+
 	// Default values for new phrases
 	previousEaseFactor := 2.5
 	previousInterval := uint16(0)
@@ -53,6 +57,8 @@ func (app *App) ReviewPhrase(
 	}
 
 	now := time.Now()
+	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	nextReviewAt := startOfToday.AddDate(0, 0, int(newInterval))
 
 	review := &models.Review{
 		PhraseID:      phraseID,
@@ -61,8 +67,8 @@ func (app *App) ReviewPhrase(
 		RecallQuality: recallQuality,
 		EaseFactor:    newEaseFactor,
 		Interval:      newInterval,
-		ReviewedAt:    now,
-		NextReviewAt:  now.AddDate(0, 0, int(newInterval)).Truncate(24 * time.Hour), // Calculate NextReviewAt (as a date)
+		ReviewedAt:    &now,
+		NextReviewAt:  &nextReviewAt,
 	}
 
 	return review, nil
@@ -91,7 +97,7 @@ func (app *App) SendNextPhraseToReviewForUser(user *models.User) {
 		return
 	}
 
-	phrase, err := app.DB.FindNextPhraseToReviewBySessionID(session.ID)
+	phrase, err := app.getNextPhraseToReview(session)
 	if err != nil {
 		log.Printf("Finding the next phrase to review failed: %v", err)
 		return
@@ -106,4 +112,51 @@ func (app *App) SendNextPhraseToReviewForUser(user *models.User) {
 		log.Printf("Sending the phrase failed: %v", err)
 		return
 	}
+}
+
+func (app *App) getNextPhraseToReview(session *models.Session) (*models.Phrase, error) {
+	sessionSize := app.Config.SessionSize
+	now := time.Now()
+
+	notReviewedPhrasesCount, err := app.DB.CountNotReviewedPhrasesBySessionId(session.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if notReviewedPhrasesCount >= sessionSize {
+		_, err = app.endSession(session)
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+	}
+
+	dueReview, err := app.DB.GetDueReview(session.UserID, now, sessionSize)
+	if err != nil {
+		return nil, err
+	}
+
+	if dueReview != nil {
+		phrase, err := app.DB.FindPhrase(dueReview.PhraseID)
+		if err != nil {
+			return nil, err
+		}
+
+		return phrase, nil
+	}
+
+	newPhraseIDs, err := app.DB.FindNewPhrasesToReview(session.UserID, 1)
+	if err != nil {
+		return nil, err
+	}
+	if len(newPhraseIDs) == 0 {
+		return nil, nil
+	}
+
+	phrase, err := app.DB.FindPhrase(newPhraseIDs[0])
+	if err != nil {
+		return nil, err
+	}
+
+	return phrase, nil
 }

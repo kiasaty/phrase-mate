@@ -20,8 +20,11 @@ func (c *Client) FindActiveSession(userID uint) (*models.Session, error) {
 	var session models.Session
 
 	err := c.DB.Where("user_id = ? AND ended_at IS NULL", userID).First(&session).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
 
-	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 

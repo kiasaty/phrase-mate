@@ -2,7 +2,6 @@ package database
 
 import (
 	"github.com/kiasaty/phrase-mate/models"
-	"gorm.io/gorm"
 )
 
 func (c *Client) CreatePhrase(phrase *models.Phrase) (*models.Phrase, error) {
@@ -31,24 +30,6 @@ func (c *Client) UpdatePhraseTags(phrase *models.Phrase, tags *[]models.Tag) err
 	return nil
 }
 
-func (c *Client) FindNextPhraseToReviewBySessionID(sessionID uint) (*models.Phrase, error) {
-	var review models.Review
-
-	err := c.DB.Where("session_id = ? AND reviewed_at IS NULL", sessionID).
-		Order("next_review_at ASC, ease_factor ASC").
-		First(&review).Error
-
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	return c.FindPhrase(review.PhraseID)
-}
-
 func (c *Client) FindPhrase(phraseID uint) (*models.Phrase, error) {
 	var phrase models.Phrase
 
@@ -59,4 +40,22 @@ func (c *Client) FindPhrase(phraseID uint) (*models.Phrase, error) {
 	}
 
 	return &phrase, nil
+}
+
+func (c *Client) FindNewPhrasesToReview(userID uint, limit int) ([]uint, error) {
+	var phraseIDs []uint
+	query := `
+		SELECT 
+			phrases.id AS phrase_id 
+		FROM phrases
+		LEFT JOIN reviews ON phrases.id = reviews.phrase_id AND reviews.user_id = ?
+		WHERE reviews.id IS NULL
+		LIMIT ?
+	`
+	err := c.DB.Raw(query, userID, limit).Scan(&phraseIDs).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return phraseIDs, nil
 }

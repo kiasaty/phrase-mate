@@ -17,20 +17,12 @@ func (app *App) GetOrStartSession(userID uint) (*models.Session, error) {
 		return app.startSession(userID)
 	}
 
-	notReviewedPhrasesCount, err := app.DB.CountNotReviewedPhrasesBySessionId(activeSession.ID)
+	phrase, err := app.getNextPhraseToReview(activeSession)
 	if err != nil {
 		return nil, err
 	}
-
-	if notReviewedPhrasesCount != 0 {
-		return activeSession, nil
-	}
-
-	now := time.Now()
-	activeSession.EndedAt = &now
-	err = app.DB.UpdateSession(activeSession)
-	if err != nil {
-		return nil, err
+	if phrase != nil {
+		return activeSession, err
 	}
 
 	activeSession, err = app.startSession(userID)
@@ -49,7 +41,6 @@ func (app *App) startSession(userID uint) (*models.Session, error) {
 	var session *models.Session
 
 	err := app.DB.Transaction(func(tx database.DatabaseClient) error {
-		sessionSize := app.Config.SessionSize
 		now := time.Now()
 
 		var err error
@@ -63,32 +54,25 @@ func (app *App) startSession(userID uint) (*models.Session, error) {
 			return err
 		}
 
-		dueSessionReviews, err := tx.GetDueReviews(userID, now, sessionSize)
-		if err != nil {
-			return err
-		}
-
-		remainingSlots := sessionSize - len(dueSessionReviews)
-		if remainingSlots > 0 {
-			newReviews, err := tx.GetNewReviews(userID, session.ID, remainingSlots)
-			if err != nil {
-				return err
-			}
-
-			dueSessionReviews = append(dueSessionReviews, newReviews...)
-		}
-
-		for i := range dueSessionReviews {
-			dueSessionReviews[i].SessionID = session.ID
-		}
-
-		if err := tx.CreateReviews(dueSessionReviews); err != nil {
-			return err
-		}
-
 		return nil
 	})
 
+	if err != nil {
+		return nil, err
+	}
+
+	return session, nil
+}
+
+func (app *App) endSession(session *models.Session) (*models.Session, error) {
+	if session.EndedAt != nil {
+		return session, nil
+	}
+
+	now := time.Now()
+	session.EndedAt = &now
+
+	err := app.DB.UpdateSession(session)
 	if err != nil {
 		return nil, err
 	}

@@ -8,9 +8,11 @@ import (
 
 func (app *App) SendPhrase(chatID int64, phraseID uint, phraseText string) error {
 	buttons := []tgbotapi.InlineKeyboardButton{
-		tgbotapi.NewInlineKeyboardButtonData("Easy", "review:"+strconv.Itoa(int(phraseID))+":easy"),
-		tgbotapi.NewInlineKeyboardButtonData("Medium", "review:"+strconv.Itoa(int(phraseID))+":medium"),
-		tgbotapi.NewInlineKeyboardButtonData("Hard", "review:"+strconv.Itoa(int(phraseID))+":hard"),
+		tgbotapi.NewInlineKeyboardButtonData("1", "review:"+strconv.Itoa(int(phraseID))+":1"),
+		tgbotapi.NewInlineKeyboardButtonData("2", "review:"+strconv.Itoa(int(phraseID))+":2"),
+		tgbotapi.NewInlineKeyboardButtonData("3", "review:"+strconv.Itoa(int(phraseID))+":3"),
+		tgbotapi.NewInlineKeyboardButtonData("4", "review:"+strconv.Itoa(int(phraseID))+":4"),
+		tgbotapi.NewInlineKeyboardButtonData("5", "review:"+strconv.Itoa(int(phraseID))+":5"),
 	}
 
 	msg := tgbotapi.NewMessage(chatID, phraseText)

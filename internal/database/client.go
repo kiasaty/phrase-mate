@@ -14,16 +14,17 @@ type DatabaseClient interface {
 
 	CreateUser(user *models.User) (*models.User, error)
 	FindUserByTelegramID(telegramID int64) (*models.User, error)
-    GetAllUsers() ([]*models.User, error)
+	GetAllUsers() ([]*models.User, error)
 
 	CreateTag(tag *models.Tag) (*models.Tag, error)
 	FindTagByName(name string) (*models.Tag, error)
 
 	CreatePhrase(phrase *models.Phrase) (*models.Phrase, error)
+	FindPhrase(phraseID uint) (*models.Phrase, error)
 	FindPhraseByMessageId(messageID int) (phrase *models.Phrase)
 	UpdatePhrase(phrase *models.Phrase) error
-	UpdatePhraseTags(phrase *models.Phrase, *[]models.Tag) error
-	FindNextPhraseToReviewBySessionID(sessionID uint) (*models.Phrase, error)
+	UpdatePhraseTags(phrase *models.Phrase, tags *[]models.Tag) error
+	FindNewPhrasesToReview(userID uint, limit int) ([]uint, error)
 
 	CreateSession(session *models.Session) (*models.Session, error)
 	UpdateSession(session *models.Session) error
@@ -32,9 +33,8 @@ type DatabaseClient interface {
 	CreateReview(review *models.Review) error
 	CreateReviews(reviews []models.Review) error
 	FindPhraseLastReview(userID uint, phraseId uint) (*models.Review, error)
-	CountNotReviewedPhrasesBySessionId(sessionID uint) (int64, error)
-	GetDueReviews(userID uint, now time.Time, limit int) ([]models.Review, error)
-	GetNewReviews(userID uint, sessionID uint, limit int) ([]models.Review, error)
+	CountNotReviewedPhrasesBySessionId(sessionID uint) (uint, error)
+	GetDueReview(userID uint, now time.Time, limit uint) (*models.Review, error)
 }
 
 type Client struct {
@@ -73,5 +73,6 @@ func (c *Client) Migrate() {
 		&models.Tag{},
 		&models.Phrase{},
 		&models.Review{},
+		&models.Session{},
 	)
 }

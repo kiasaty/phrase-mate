@@ -111,7 +111,7 @@ func (app *App) SendNextPhraseToReviewForUser(user *models.User) {
 		user.TelegramChatID,
 		session.ID,
 		phrase.ID,
-		phrase.Text,
+		removeHashtags(phrase.Text),
 	)
 	if err != nil {
 		log.Printf("Sending the phrase failed: %v", err)

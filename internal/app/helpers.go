@@ -12,3 +12,14 @@ func extractHashtags(text string) []string {
 	}
 	return hashtags
 }
+
+func removeHashtags(text string) string {
+	words := strings.Fields(text)
+	var filtered []string
+	for _, word := range words {
+		if !strings.HasPrefix(word, "#") {
+			filtered = append(filtered, word)
+		}
+	}
+	return strings.Join(filtered, " ")
+}

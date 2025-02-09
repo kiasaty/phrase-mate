@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -142,23 +141,39 @@ func (app *App) handleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery) {
 
 	recallQualityNumber, err := strconv.ParseUint(data[3], 10, 8)
 	if err != nil {
-		fmt.Println("Invalid recall quality:", err)
+		log.Printf("Invalid recall quality: %v", err)
 		return
 	}
 
 	recallQuality := models.RecallQuality(recallQualityNumber)
-
 	if !recallQuality.IsValid() {
-		fmt.Println("Invalid RecallQuality value:", recallQuality)
+		log.Printf("Invalid RecallQuality value: %v", recallQuality)
 		return
 	}
 
+	// Process the review
 	err = app.handleReview(user, uint(sessionID), uint(phraseID), recallQuality)
-	if err == nil {
-		callback := tgbotapi.NewCallback(callbackQuery.ID, "Thank you for your feedback!")
-		if _, err := app.TelegramBot.Request(callback); err != nil {
-			log.Printf("Failed to send callback response: %v", err)
-		}
+	if err != nil {
+		log.Printf("Failed to handle review: %v", err)
+		return
+	}
+
+	// Remove inline keyboard buttons by editing the message reply markup to empty.
+	editMarkup := tgbotapi.NewEditMessageReplyMarkup(
+		callbackQuery.Message.Chat.ID,
+		callbackQuery.Message.MessageID,
+		tgbotapi.InlineKeyboardMarkup{
+			InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{},
+		},
+	)
+	if _, err := app.TelegramBot.Send(editMarkup); err != nil {
+		log.Printf("Failed to remove inline keyboard: %v", err)
+	}
+
+	// Send callback response to the user
+	callback := tgbotapi.NewCallback(callbackQuery.ID, "Review successfully saved!")
+	if _, err := app.TelegramBot.Request(callback); err != nil {
+		log.Printf("Failed to send callback response: %v", err)
 	}
 }
 

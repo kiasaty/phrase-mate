@@ -1,6 +1,6 @@
 module github.com/kiasaty/phrase-mate
 
-go 1.23.3
+go 1.23
 
 require (
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1

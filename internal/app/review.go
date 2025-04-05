@@ -17,12 +17,13 @@ func (app *App) ReviewPhrase(
 	}
 
 	// Fetch the last review for the given PhraseID and UserID
-	lastReview, err := app.DB.FindPhraseLastReview(userID, phraseID)
+	lastReview, err := app.DB.FindReview(userID, phraseID)
 	if err != nil {
 		return nil, err
 	}
 
-	if lastReview != nil && lastReview.NextReviewAt.After(time.Now()) {
+	// Check if review is not due yet
+	if lastReview != nil && lastReview.NextReviewAt != nil && lastReview.NextReviewAt.After(time.Now()) {
 		return nil, nil
 	}
 
@@ -32,12 +33,12 @@ func (app *App) ReviewPhrase(
 
 	// Use the last review's values if available
 	if lastReview != nil {
-		previousEaseFactor = lastReview.EaseFactor
 		previousInterval = lastReview.Interval
 	}
 
 	// Adjust EaseFactor based on RecallQuality
-	newEaseFactor := previousEaseFactor + (0.1 - float64(5-recallQuality)*(0.08+float64(5-recallQuality)*0.02))
+	qualityDiff := float64(5 - recallQuality)
+	newEaseFactor := previousEaseFactor + (0.1 - qualityDiff*(0.08+qualityDiff*0.02))
 	if newEaseFactor < 1.3 {
 		newEaseFactor = 1.3
 	}
@@ -69,6 +70,11 @@ func (app *App) ReviewPhrase(
 		Interval:      newInterval,
 		ReviewedAt:    &now,
 		NextReviewAt:  &nextReviewAt,
+	}
+
+	// Create the review in the database
+	if err := app.DB.CreateReview(review); err != nil {
+		return nil, err
 	}
 
 	return review, nil
@@ -151,4 +157,12 @@ func (app *App) getNextPhraseToReview(session *models.Session) (*models.Phrase, 
 	}
 
 	return phrase, nil
+}
+
+func (app *App) storeReview(review *models.Review) error {
+	return app.DB.CreateReview(review)
+}
+
+func (app *App) GetReviewHistory(userID uint, phraseID uint) ([]*models.ReviewHistory, error) {
+	return app.DB.FindReviewHistory(userID, phraseID)
 }

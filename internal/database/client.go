@@ -31,10 +31,14 @@ type DatabaseClient interface {
 	FindActiveSession(userID uint) (*models.Session, error)
 
 	CreateReview(review *models.Review) error
-	CreateReviews(reviews []models.Review) error
-	FindPhraseLastReview(userID uint, phraseId uint) (*models.Review, error)
+	UpdateReview(review *models.Review) error
+	FindReview(userID uint, phraseId uint) (*models.Review, error)
 	CountReviewedPhrasesInSession(sessionID uint) (uint, error)
 	GetDueReview(userID uint, now time.Time, limit uint) (*models.Review, error)
+
+	// Review history operations
+	CreateReviewHistory(review *models.ReviewHistory) error
+	FindReviewHistory(userID uint, phraseID uint) ([]*models.ReviewHistory, error)
 }
 
 type Client struct {
@@ -73,6 +77,7 @@ func (c *Client) Migrate() {
 		&models.Tag{},
 		&models.Phrase{},
 		&models.Review{},
+		&models.ReviewHistory{},
 		&models.Session{},
 	)
 }

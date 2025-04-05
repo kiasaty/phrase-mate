@@ -194,13 +194,11 @@ func (app *App) handleReview(
 		log.Printf("Failed to review the phrase: %v", err)
 		return err
 	}
-
 	if review == nil {
 		return nil
 	}
 
-	err = app.DB.CreateReview(review)
-
+	err = app.storeReview(review)
 	if err != nil {
 		log.Printf("Failed to save phrase review: %v", err)
 		return err

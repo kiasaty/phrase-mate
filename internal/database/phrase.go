@@ -50,6 +50,7 @@ func (c *Client) FindNewPhrasesToReview(userID uint, limit int) ([]uint, error) 
 		FROM phrases
 		LEFT JOIN reviews ON phrases.id = reviews.phrase_id AND reviews.user_id = ?
 		WHERE reviews.id IS NULL
+		AND phrases.is_mastered = false
 		LIMIT ?
 	`
 	err := c.DB.Raw(query, userID, limit).Scan(&phraseIDs).Error
@@ -58,4 +59,11 @@ func (c *Client) FindNewPhrasesToReview(userID uint, limit int) ([]uint, error) 
 	}
 
 	return phraseIDs, nil
+}
+
+func (c *Client) MarkPhraseAsMastered(phraseID uint) error {
+	return c.DB.Model(&models.Phrase{}).
+		Where("id = ?", phraseID).
+		Update("is_mastered", true).
+		Error
 }

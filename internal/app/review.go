@@ -80,6 +80,13 @@ func (app *App) ReviewPhrase(
 		return nil, err
 	}
 
+	// Check if the phrase should be retired
+	if newInterval >= uint16(app.Config.MaxIntervalDays) {
+		if err := app.markPhraseAsMastered(phraseID); err != nil {
+			return nil, err
+		}
+	}
+
 	return review, nil
 }
 
@@ -143,6 +150,11 @@ func (app *App) getNextPhraseToReview(session *models.Session) (*models.Phrase, 
 			return nil, err
 		}
 
+		// Skip mastered phrases
+		if phrase.IsMastered {
+			return app.getNextPhraseToReview(session)
+		}
+
 		return phrase, nil
 	}
 
@@ -159,6 +171,11 @@ func (app *App) getNextPhraseToReview(session *models.Session) (*models.Phrase, 
 		return nil, err
 	}
 
+	// Skip mastered phrases
+	if phrase.IsMastered {
+		return app.getNextPhraseToReview(session)
+	}
+
 	return phrase, nil
 }
 
@@ -168,4 +185,8 @@ func (app *App) storeReview(review *models.Review) error {
 
 func (app *App) GetReviewHistory(userID uint, phraseID uint) ([]*models.ReviewHistory, error) {
 	return app.DB.FindReviewHistory(userID, phraseID)
+}
+
+func (app *App) markPhraseAsMastered(phraseID uint) error {
+	return app.DB.MarkPhraseAsMastered(phraseID)
 }

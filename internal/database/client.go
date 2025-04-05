@@ -39,6 +39,8 @@ type DatabaseClient interface {
 	// Review history operations
 	CreateReviewHistory(review *models.ReviewHistory) error
 	FindReviewHistory(userID uint, phraseID uint) ([]*models.ReviewHistory, error)
+
+	MarkPhraseAsMastered(phraseID uint) error
 }
 
 type Client struct {

@@ -16,7 +16,8 @@ type App struct {
 }
 
 type Config struct {
-	SessionSize uint
+	SessionSize     uint
+	MaxIntervalDays int
 }
 
 func NewApp(databaseClient database.DatabaseClient, telegramBot *tgbotapi.BotAPI, config Config) *App {
@@ -29,7 +30,8 @@ func NewApp(databaseClient database.DatabaseClient, telegramBot *tgbotapi.BotAPI
 
 func GetDefaultConfig() Config {
 	return Config{
-		SessionSize: 20,
+		SessionSize:     20,
+		MaxIntervalDays: 365,
 	}
 }
 

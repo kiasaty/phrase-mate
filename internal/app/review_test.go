@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -113,7 +112,6 @@ func TestReviewPhrase(t *testing.T) {
 			review, err := setup.app.ReviewPhrase(setup.phrase.ID, setup.user.ID, 1, tc.recallQuality)
 			assert.NoError(t, err)
 			assert.NotNil(t, review)
-			fmt.Println("review", review.EaseFactor, review.Interval, review.RecallQuality)
 			assert.Equal(t, tc.expectedEase, review.EaseFactor)
 			assert.Equal(t, tc.expectedInterval, review.Interval)
 			assert.Equal(t, tc.recallQuality, review.RecallQuality)
@@ -153,4 +151,237 @@ func TestReviewPhraseInvalidQuality(t *testing.T) {
 	review, err := setup.app.ReviewPhrase(setup.phrase.ID, setup.user.ID, 1, models.RecallQuality(6))
 	assert.Error(t, err)
 	assert.Nil(t, review)
+}
+
+func TestPhraseMastery(t *testing.T) {
+	// Test 1: Perfect reviews should lead to mastery
+	t.Run("Perfect reviews lead to mastery", func(t *testing.T) {
+		db := setupTestDB(t)
+		defer cleanupTestDB(db)
+
+		config := GetDefaultConfig()
+		config.MaxIntervalDays = 180 // 6 months
+		app := NewApp(db, nil, config)
+
+		// Create test user and phrase
+		user := &models.User{
+			TelegramChatID: 123,
+			IsBot:          false,
+		}
+		user, err := db.CreateUser(user)
+		if err != nil {
+			t.Fatalf("Failed to create user: %v", err)
+		}
+
+		phrase := &models.Phrase{
+			UserID:            user.ID,
+			TelegramMessageID: 456,
+			Text:              "test phrase",
+		}
+		phrase, err = db.CreatePhrase(phrase)
+		if err != nil {
+			t.Fatalf("Failed to create phrase: %v", err)
+		}
+
+		// Create a session
+		session := &models.Session{
+			UserID: user.ID,
+		}
+		session, err = db.CreateSession(session)
+		if err != nil {
+			t.Fatalf("Failed to create session: %v", err)
+		}
+
+		// Simulate perfect reviews
+		var lastReview *models.Review
+		for i := 0; i < 7; i++ {
+			review, err := app.ReviewPhrase(phrase.ID, user.ID, session.ID, models.QualityPerfect)
+			if err != nil {
+				t.Fatalf("Failed to review phrase: %v", err)
+			}
+			if review == nil {
+				t.Fatalf("Expected review to be created")
+			}
+			lastReview = review
+
+			// Move the next review date to the past to allow immediate review
+			if i < 6 {
+				pastTime := time.Now().AddDate(0, 0, -1)
+				lastReview.NextReviewAt = &pastTime
+				if err := db.UpdateReview(lastReview); err != nil {
+					t.Fatalf("Failed to update review: %v", err)
+				}
+			}
+		}
+
+		// Verify the phrase is marked as mastered
+		updatedPhrase, err := db.FindPhrase(phrase.ID)
+		if err != nil {
+			t.Fatalf("Failed to find phrase: %v", err)
+		}
+		if !updatedPhrase.IsMastered {
+			t.Error("Expected phrase to be marked as mastered")
+		}
+	})
+
+	// Test 2: Imperfect reviews should not lead to mastery
+	t.Run("Imperfect reviews do not lead to mastery", func(t *testing.T) {
+		db := setupTestDB(t)
+		defer cleanupTestDB(db)
+
+		config := GetDefaultConfig()
+		config.MaxIntervalDays = 180 // 6 months
+		app := NewApp(db, nil, config)
+
+		// Create test user and phrase
+		user := &models.User{
+			TelegramChatID: 123,
+			IsBot:          false,
+		}
+		user, err := db.CreateUser(user)
+		if err != nil {
+			t.Fatalf("Failed to create user: %v", err)
+		}
+
+		phrase := &models.Phrase{
+			UserID:            user.ID,
+			TelegramMessageID: 789,
+			Text:              "test phrase 2",
+		}
+		phrase, err = db.CreatePhrase(phrase)
+		if err != nil {
+			t.Fatalf("Failed to create phrase: %v", err)
+		}
+
+		// Create a session
+		session := &models.Session{
+			UserID: user.ID,
+		}
+		session, err = db.CreateSession(session)
+		if err != nil {
+			t.Fatalf("Failed to create session: %v", err)
+		}
+
+		// Simulate imperfect reviews
+		var lastReview *models.Review
+		for i := 0; i < 10; i++ { // More reviews than needed for mastery
+			review, err := app.ReviewPhrase(phrase.ID, user.ID, session.ID, models.QualityHesitant)
+			if err != nil {
+				t.Fatalf("Failed to review phrase: %v", err)
+			}
+			if review == nil {
+				t.Fatalf("Expected review to be created")
+			}
+			lastReview = review
+
+			// Move the next review date to the past to allow immediate review
+			pastTime := time.Now().AddDate(0, 0, -1)
+			lastReview.NextReviewAt = &pastTime
+			if err := db.UpdateReview(lastReview); err != nil {
+				t.Fatalf("Failed to update review: %v", err)
+			}
+		}
+
+		// Verify the phrase is not marked as mastered
+		updatedPhrase, err := db.FindPhrase(phrase.ID)
+		if err != nil {
+			t.Fatalf("Failed to find phrase: %v", err)
+		}
+		if updatedPhrase.IsMastered {
+			t.Error("Expected phrase to not be marked as mastered")
+		}
+	})
+
+	// Test 3: Mixed reviews with eventual perfect ones should lead to mastery
+	t.Run("Mixed reviews with eventual perfect ones lead to mastery", func(t *testing.T) {
+		db := setupTestDB(t)
+		defer cleanupTestDB(db)
+
+		config := GetDefaultConfig()
+		config.MaxIntervalDays = 180 // 6 months
+		app := NewApp(db, nil, config)
+
+		// Create test user and phrase
+		user := &models.User{
+			TelegramChatID: 123,
+			IsBot:          false,
+		}
+		user, err := db.CreateUser(user)
+		if err != nil {
+			t.Fatalf("Failed to create user: %v", err)
+		}
+
+		phrase := &models.Phrase{
+			UserID:            user.ID,
+			TelegramMessageID: 101112,
+			Text:              "test phrase 3",
+		}
+		phrase, err = db.CreatePhrase(phrase)
+		if err != nil {
+			t.Fatalf("Failed to create phrase: %v", err)
+		}
+
+		// Create a session
+		session := &models.Session{
+			UserID: user.ID,
+		}
+		session, err = db.CreateSession(session)
+		if err != nil {
+			t.Fatalf("Failed to create session: %v", err)
+		}
+
+		// Simulate mixed reviews
+		qualities := []models.RecallQuality{
+			models.QualityHesitant,
+			models.QualityRemembered,
+			models.QualityPerfect,
+			models.QualityPerfect,
+			models.QualityPerfect,
+			models.QualityPerfect,
+			models.QualityPerfect,
+			models.QualityPerfect,
+		}
+
+		var lastReview *models.Review
+		for i, quality := range qualities {
+			review, err := app.ReviewPhrase(phrase.ID, user.ID, session.ID, quality)
+			if err != nil {
+				t.Fatalf("Failed to review phrase: %v", err)
+			}
+			if review == nil {
+				t.Fatalf("Expected review to be created")
+			}
+			lastReview = review
+
+			// Move the next review date to the past to allow immediate review
+			if i < len(qualities)-1 { // Don't move the date after the last review
+				pastTime := time.Now().AddDate(0, 0, -1)
+				lastReview.NextReviewAt = &pastTime
+				if err := db.UpdateReview(lastReview); err != nil {
+					t.Fatalf("Failed to update review: %v", err)
+				}
+			}
+		}
+
+		// Verify the phrase is marked as mastered
+		updatedPhrase, err := db.FindPhrase(phrase.ID)
+		if err != nil {
+			t.Fatalf("Failed to find phrase: %v", err)
+		}
+		if !updatedPhrase.IsMastered {
+			t.Error("Expected phrase to be marked as mastered")
+		}
+	})
+}
+
+func cleanupTestDB(db *database.Client) {
+	// Drop all tables
+	db.DB.Migrator().DropTable(
+		&models.User{},
+		&models.Tag{},
+		&models.Phrase{},
+		&models.Review{},
+		&models.ReviewHistory{},
+		&models.Session{},
+	)
 }

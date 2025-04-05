@@ -19,8 +19,8 @@ type Config struct {
 	SessionSize uint
 }
 
-func NewApp(databaseClient database.DatabaseClient, telegramBot *tgbotapi.BotAPI, config Config) App {
-	return App{
+func NewApp(databaseClient database.DatabaseClient, telegramBot *tgbotapi.BotAPI, config Config) *App {
+	return &App{
 		DB:          databaseClient,
 		TelegramBot: telegramBot,
 		Config:      config,

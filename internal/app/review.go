@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"log"
+	"math"
 	"time"
 
 	"github.com/kiasaty/phrase-mate/models"
@@ -33,12 +34,14 @@ func (app *App) ReviewPhrase(
 
 	// Use the last review's values if available
 	if lastReview != nil {
+		previousEaseFactor = lastReview.EaseFactor
 		previousInterval = lastReview.Interval
 	}
 
 	// Adjust EaseFactor based on RecallQuality
 	qualityDiff := float64(5 - recallQuality)
 	newEaseFactor := previousEaseFactor + (0.1 - qualityDiff*(0.08+qualityDiff*0.02))
+	newEaseFactor = math.Round(newEaseFactor*100) / 100 // Round to 2 decimal places
 	if newEaseFactor < 1.3 {
 		newEaseFactor = 1.3
 	}

@@ -13,7 +13,7 @@ func (c *Client) CreatePhrase(phrase *models.Phrase) (*models.Phrase, error) {
 
 func (c *Client) FindPhraseByMessageId(messageID int) (phrase *models.Phrase) {
 	var p models.Phrase
-	if err := c.DB.Preload("User").Preload("Tags").Where("message_id = ?", messageID).First(&p).Error; err != nil {
+	if err := c.DB.Preload("User").Preload("Tags").Where("telegram_message_id = ?", messageID).First(&p).Error; err != nil {
 		return nil
 	}
 	return &p

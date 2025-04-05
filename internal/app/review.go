@@ -75,8 +75,7 @@ func (app *App) ReviewPhrase(
 		NextReviewAt:  &nextReviewAt,
 	}
 
-	// Create the review in the database
-	if err := app.DB.CreateReview(review); err != nil {
+	if err := app.storeReview(review); err != nil {
 		return nil, err
 	}
 

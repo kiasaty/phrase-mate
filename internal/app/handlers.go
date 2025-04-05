@@ -198,12 +198,6 @@ func (app *App) handleReview(
 		return nil
 	}
 
-	err = app.storeReview(review)
-	if err != nil {
-		log.Printf("Failed to save phrase review: %v", err)
-		return err
-	}
-
 	reviewedPhrasesCount, err := app.DB.CountReviewedPhrasesInSession(sessionID)
 	if err != nil {
 		return err

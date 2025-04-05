@@ -8,26 +8,22 @@ import (
 )
 
 func (c *Client) CreateReview(review *models.Review) error {
-	// First, find existing review
 	existingReview, err := c.FindReview(review.UserID, review.PhraseID)
 	if err != nil {
 		return err
 	}
 
 	if existingReview != nil {
-		// Update the existing review
 		review.ID = existingReview.ID
 		if err := c.UpdateReview(review); err != nil {
 			return err
 		}
 	} else {
-		// Create new review if it doesn't exist
 		if err := c.DB.Create(review).Error; err != nil {
 			return err
 		}
 	}
 
-	// Store the review in history
 	history := &models.ReviewHistory{
 		PhraseID:      review.PhraseID,
 		UserID:        review.UserID,
@@ -96,7 +92,6 @@ func (c *Client) GetDueReview(userID uint, now time.Time, limit uint) (*models.R
 	return &review, nil
 }
 
-// Review history operations
 func (c *Client) CreateReviewHistory(review *models.ReviewHistory) error {
 	return c.DB.Create(review).Error
 }
